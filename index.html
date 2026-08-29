@@ -37,6 +37,76 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
+
+/* ============================================================
+   一次性启动动画 · 水滴进场（Splash Screen）
+   ------------------------------------------------------------
+   借鉴「学习强国」启动页的极简逻辑（而非背景动效）：
+   暖白 → 单颗朱红水滴落下 → 撞击/扩张 → 朱红漫开 → 中心揭幕。
+   仅首次加载播放一次，结束后由脚本移除整层；打印完全隐藏。
+   ============================================================ */
+.intro-splash {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+  overflow: hidden;
+  /* 容器自身透明：暖白由 .splash-bg 提供，便于揭幕时被 mask 一并挖开 */
+}
+.splash-bg {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+}
+.splash-drop-wrap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  will-change: transform;
+}
+.splash-drop {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 22px;
+  height: 30px;
+  transform: translate(-50%, -50%);
+  will-change: transform, opacity;
+}
+.splash-drop path { fill: var(--accent); }
+.splash-ink {
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  clip-path: circle(0px at 50% 50%);
+  will-change: clip-path;
+}
+.intro-motto {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  gap: 0.55em;
+  font-family: var(--serif);
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--bg);
+  white-space: nowrap;
+}
+.intro-motto span {
+  opacity: 0;
+  transform: translateY(3px) scale(0.98);
+  filter: blur(1px);
+  will-change: opacity, transform, filter;
+}
+@media (max-width: 560px) {
+  .splash-drop { width: 15px; height: 21px; }
+  .intro-motto { font-size: 26px; }
+}
 a { color: inherit; text-decoration: none; }
 img { display: block; max-width: 100%; }
 button { font-family: var(--sans); }
@@ -757,6 +827,7 @@ footer .f-brand { font-family: var(--serif); font-size: 15px; color: var(--ink-2
     font-size: 11pt;
     border-width: 1pt;
   }
+  .intro-splash { display: none !important; }
 
   /* ---------- 序 / 凡例 / 摘句 / 编纂记 正文 ---------- */
   #preface { padding: 0; }
@@ -857,6 +928,20 @@ footer .f-brand { font-family: var(--serif); font-size: 15px; color: var(--ink-2
 </style>
 </head>
 <body>
+
+<!-- ============ 一次性启动动画 · 水滴进场（Splash） ============ -->
+<div class="intro-splash" id="intro-splash" aria-hidden="true">
+  <div class="splash-bg"></div>
+  <div class="splash-drop-wrap">
+    <svg class="splash-drop" viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">
+      <path d="M50 6 C26 44 12 64 12 90 A38 38 0 0 0 88 90 C88 64 74 44 50 6 Z"/>
+    </svg>
+  </div>
+  <div class="splash-ink"></div>
+  <div class="intro-motto" aria-hidden="true">
+    <span>鸣</span><span>师</span><span>出</span><span>高</span><span>徒</span>
+  </div>
+</div>
 
 <!-- ============ 导航 ============ -->
 <header class="nav">
@@ -1024,7 +1109,8 @@ footer .f-brand { font-family: var(--serif); font-size: 15px; color: var(--ink-2
         { "id": "e16", "number": "1.6", "people": ["ming"], "tags": ["反恐精英", "游戏"], "text": "香蕉道，小镇警匪必争之地。鸣单排为警，起狙架中段，为对面四枪所撕。再起狙架警家，对方拉出，穿墙爆头，鸣未死，身一凛，对方已过。鸣外拉击杀之，笑曰：“吾已读懂对面矣。”", "translation": "香蕉道是小地图上警匪必争之地。子鸣单排当警，起狙架在中段，被对面四枪近身撕掉。再起狙架在警家，对方拉出来，穿墙爆头，子鸣没死，身子一凛，对方已经冲过去了。子鸣外拉将其击杀，笑道：“我已经读懂对面了。”", "notes": ["小镇，《反恐精英》地图之名。香蕉道，此图中之要地。单排，独自入局之谓。"], "excerpt": "吾已读懂对面矣。", "eventDate": null, "addedAt": null },
         { "id": "e17", "number": "1.7", "people": ["ming"], "tags": ["反恐精英", "游戏"], "text": "鸣戏《反恐精英》，应敌恒迟。友问其故，曰：“吾方观小地图。”友曰：“视吾何在，再丢闪。”鸣曰：“吾安得暇观小地图？”", "translation": "子鸣玩《反恐精英》，反应总是慢。朋友问为什么，他说：“我正看小地图。”朋友说：“看看我在哪儿，再丢闪。”子鸣说：“我哪有空看小地图？”", "excerpt": "吾安得暇观小地图？", "eventDate": null, "addedAt": null },
         { "id": "e18", "number": "1.8", "people": ["ming", "yao", "xiao"], "tags": ["反恐精英", "游戏"], "text": "鸣与姚成、枭观《反恐精英》赛。见一善策，鸣曰：“记之，异日五排用。”姚成曰：“尚有异日乎？”鸣曰：“汝不在时，吾等猛打。”姚成问：“猛打几何？”枭曰：“三把，三把皆汝之责。”姚成曰：“此即猛打？”鸣亦笑。", "translation": "子鸣与姚成、王芳枭一起看《反恐精英》比赛。看到一个好战术，子鸣说：“记下来，改天五排用。”姚成说：“还有改天吗？”子鸣说：“你不在的时候，我们猛打。”姚成问：“猛打是打多少把？”王芳枭说：“三把，三把还都是你的责任。”姚成说：“这就是猛打？”子鸣也笑了。", "notes": ["五排，五人之组队对局。"], "eventDate": null, "addedAt": null },
-        { "id": "e19", "number": "1.9", "people": ["ming", "chun", "xiao", "yao"], "tags": ["游戏", "暗区突围"], "text": "鸣所戏甚多，常以所好荐友。一日荐《暗区突围》于淳、枭，二人诺而戏之，鸣反不复戏。二人惑，使姚成问之。鸣曰：“彼自戏，独不呼我。”枭曰：“吾二人亦未尝相呼，见其上线则邀。鸣终不上线，安得呼？且此戏彼所荐，宜彼呼我，何反责我？”", "translation": "子鸣玩的游戏多，常把自己在玩的推荐给朋友。一天把《暗区突围》推荐给梁晓淳和王芳枭，两人答应并玩了起来，子鸣反而不玩了。两人纳闷，让姚成去问。子鸣说：“他们自己玩，偏偏不叫我。”王芳枭说：“我们俩也没互相叫过，看对方上线就邀。子鸣一直不上线，怎么叫？再说这游戏是他推荐的，该他叫我们，怎么反怪我们？”", "notes": ["淳，即梁晓淳，赵子鸣之友。"], "eventDate": null, "addedAt": null }
+        { "id": "e19", "number": "1.9", "people": ["ming", "chun", "xiao", "yao"], "tags": ["游戏", "暗区突围"], "text": "鸣所戏甚多，常以所好荐友。一日荐《暗区突围》于淳、枭，二人诺而戏之，鸣反不复戏。二人惑，使姚成问之。鸣曰：“彼自戏，独不呼我。”枭曰：“吾二人亦未尝相呼，见其上线则邀。鸣终不上线，安得呼？且此戏彼所荐，宜彼呼我，何反责我？”", "translation": "子鸣玩的游戏多，常把自己在玩的推荐给朋友。一天把《暗区突围》推荐给梁晓淳和王芳枭，两人答应并玩了起来，子鸣反而不玩了。两人纳闷，让姚成去问。子鸣说：“他们自己玩，偏偏不叫我。”王芳枭说：“我们俩也没互相叫过，看对方上线就邀。子鸣一直不上线，怎么叫？再说这游戏是他推荐的，该他叫我们，怎么反怪我们？”", "notes": ["淳，即梁晓淳，赵子鸣之友。"], "eventDate": null, "addedAt": null },
+        { "id": "e110", "number": "1.10", "people": ["ming", "xiao"], "tags": ["反恐精英", "游戏"], "text": "鸣与枭戏《反恐精英》。是时局迫，鸣资少而绩劣。队友发枪与之，开麦告曰：“枪与汝矣。”鸣默然，弗取，独起喷子，掷FAZE烟，径下中路，未有所为，为敌所毙。局罢，枭问曰：“胡不取队友之枪？”鸣曰：“不必，反正吾杀不到人，不如持喷子往中路换一个。”枭大惑。然是局众力卒胜。枭见鸣意沮，以为不复战，将退而息。未料鸣遽开次局，遽入局中。枭不知何言。", "translation": "王芳枭与子鸣打《反恐精英》。当时局势紧迫，子鸣经济不好、战绩又差。队友给他发枪，开麦提醒说：“给你发枪了。”子鸣不说话，也不拿枪，自己起了把喷子，丢了颗FAZE烟，直冲中路，什么也没做就被对面击杀了。这一小局打完，王芳枭问：“怎么不拿队友的枪？”子鸣说：“不用，反正我也杀不到人，不如拿把喷子去中路换一个。”王芳枭很是不解。好在整局实力强过对面，最终还是拿下了。王芳枭见子鸣情绪低落，以为他不想再打了，正要退出休息，没想到子鸣立刻开了下一把，立刻进了局。王芳枭不知说什么好。", "notes": ["喷子，谓散弹枪，近战所用，俗称喷子。", "FAZE烟，谓仿 FaZe 战队战术所掷之烟雾弹。"], "excerpt": "反正吾杀不到人，不如持喷子往中路换一个。", "eventDate": null, "addedAt": null }
       ]
     },
     {
@@ -1630,6 +1716,171 @@ footer .f-brand { font-family: var(--serif); font-size: 15px; color: var(--ink-2
     }
   }
   init();
+
+  /* ============================================================
+     一次性启动动画 · 水滴进场（Splash Screen）
+     ------------------------------------------------------------
+     借鉴 Aniplex Logo 片头的视觉语言：极简、留白、逐字显现、
+     有节奏的停顿。核心意象三词——「落墨、题字、开卷」：
+     落墨：单颗朱红水滴渐显落下（重力加速 + 纵向拉长），
+           撞击中心压扁（squash），朱红液体连续扩张铺满全屏；
+     题字：「鸣师出高徒」五字于朱幕中央依次显现，如题签逐字
+           落定，稍驻之后整体隐去；
+     开卷：中心暖白揭幕（mask 从中心透明向外扩张），露出下方
+           《鸣语》首页。
+     · 仅首次加载播放一次，结束即移除整层，不再消耗性能
+     · 无障碍：prefers-reduced-motion 时直接显示首页
+     · 打印：见 @media print 完全隐藏
+     ============================================================ */
+  function initSplash() {
+    var splash = document.getElementById('intro-splash');
+    if (!splash) return;
+
+    // 减少动画偏好：跳过启动动画，直接露出首页
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      splash.remove();
+      return;
+    }
+
+    var drop = splash.querySelector('.splash-drop');
+    var ink = splash.querySelector('.splash-ink');
+    var mottoSpans = splash.querySelectorAll('.intro-motto span');
+
+    // 视口相关量：覆盖半径取中心到最远角的距离，任何屏幕比例都能铺满
+    var w = window.innerWidth;
+    var h = window.innerHeight;
+    var R = Math.hypot(w, h) / 2 * 1.04;
+    var cx = w / 2;
+    var cy = h / 2;
+    var DROP_TOP = -h * 0.30;          // 水滴从中心上方约 30% 视口高下落
+
+    // 「鸣师出高徒」五字依次显现的起始时刻（毫秒）。
+    // 间隔刻意略有不齐（+110 / +110 / +140 / +120），
+    // 避免机械等距，形成片头题签式的人为节奏。
+    var MOTTO_OFFSETS = [1400, 1510, 1620, 1760, 1880];
+    var MOTTO_IN = 220;                // 单字进场时长（180–260ms）
+    var MOTTO_OUT = 2460;              // 完整句子停留后，开始整体淡出
+    var MOTTO_OUT_DUR = 210;           // 整体淡出时长（180–250ms）
+
+    var T0 = performance.now();
+    var done = false;
+
+    function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+    function easeInQuad(t) { return t * t; }                       // 重力加速
+    function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }    // 扩张 / 揭幕 / 单字
+    function easeOutQuart(t) { return 1 - Math.pow(1 - t, 4); }    // 撞击压扁
+
+    // 五字：逐字进场 → 完整停留 → 整体淡出
+    function applyMotto(t) {
+      var i, span, start, p;
+      for (i = 0; i < mottoSpans.length; i++) {
+        span = mottoSpans[i];
+        start = MOTTO_OFFSETS[i];
+        if (t < start) {
+          span.style.opacity = '0';
+          span.style.transform = 'translateY(3px) scale(0.98)';
+          span.style.filter = 'blur(1px)';
+        } else if (t < start + MOTTO_IN) {
+          p = easeOutCubic((t - start) / MOTTO_IN);
+          span.style.opacity = String(p);
+          span.style.transform = 'translateY(' + (3 * (1 - p)) + 'px) scale(' + (0.98 + 0.02 * p) + ')';
+          span.style.filter = 'blur(' + (1 - p) + 'px)';
+        } else if (t < MOTTO_OUT) {
+          span.style.opacity = '1';
+          span.style.transform = 'translateY(0px) scale(1)';
+          span.style.filter = 'none';
+        } else if (t < MOTTO_OUT + MOTTO_OUT_DUR) {
+          p = (t - MOTTO_OUT) / MOTTO_OUT_DUR;
+          span.style.opacity = String(1 - p);
+          span.style.transform = 'translateY(' + (-2 * p) + 'px)';
+          span.style.filter = 'none';
+        } else {
+          span.style.opacity = '0';
+          span.style.transform = 'translateY(-2px)';
+          span.style.filter = 'none';
+        }
+      }
+    }
+
+    function setMottoGone() {
+      var i;
+      for (i = 0; i < mottoSpans.length; i++) {
+        mottoSpans[i].style.opacity = '0';
+        mottoSpans[i].style.transform = 'translateY(-2px)';
+        mottoSpans[i].style.filter = 'none';
+      }
+    }
+
+    function frame(now) {
+      var t = now - T0;
+      var p, e;
+
+      if (t < 200) {
+        // 阶段一：静止（暖白启动页，无任何 loading）
+        drop.style.opacity = '0';
+      } else if (t < 400) {
+        // 阶段二：水滴渐显（opacity 0→1，scale 0.6→1）
+        p = (t - 200) / 200; e = easeOutCubic(p);
+        drop.style.opacity = String(e);
+        drop.style.transform = 'translate(-50%, ' + DROP_TOP + 'px) scale(' + (0.6 + 0.4 * e) + ')';
+      } else if (t < 780) {
+        // 阶段三：下落（重力加速）+ 纵向拉长、横向收窄
+        p = (t - 400) / 380; e = easeInQuad(p);
+        var dy = DROP_TOP * (1 - e);
+        var sx = 1 - 0.18 * e;      // 1 → 0.82
+        var sy = 1 + 0.25 * e;      // 1 → 1.25
+        drop.style.opacity = '1';
+        drop.style.transform = 'translate(-50%, ' + dy + 'px) scale(' + sx + ', ' + sy + ')';
+      } else if (t < 850) {
+        // 阶段四：撞击压扁（squash），scaleX→1.7、scaleY→0.45
+        p = (t - 780) / 70; e = easeOutQuart(p);
+        drop.style.opacity = '1';
+        drop.style.transform = 'translate(-50%, 0px) scale(' + (0.82 + 0.88 * e) + ', ' + (1.25 - 0.80 * e) + ')';
+      } else if (t < 1250) {
+        // 阶段五：水滴隐去，朱红液体从撞击点连续扩张
+        drop.style.opacity = '0';
+        p = (t - 850) / 400; e = easeOutCubic(p);
+        var r = 18 + (R - 18) * e;
+        ink.style.clipPath = 'circle(' + r + 'px at ' + cx + 'px ' + cy + 'px)';
+      } else if (t < 1400) {
+        // 阶段六：全屏朱红，短暂停顿（让液体运动停歇，蓄势待题字）
+        ink.style.clipPath = 'none';
+      } else if (t < 2670) {
+        // 阶段七：题字——「鸣师出高徒」逐字显现 → 完整停留 → 整体淡出
+        ink.style.clipPath = 'none';
+        applyMotto(t);
+      } else if (t < 2760) {
+        // 阶段八：纯朱红静止（文字已隐去，短暂留白）
+        ink.style.clipPath = 'none';
+        setMottoGone();
+      } else if (t < 3150) {
+        // 阶段九：开卷——中心暖白揭幕，mask 从中心透明向外扩张，露出首页
+        ink.style.clipPath = 'none';
+        setMottoGone();
+        p = (t - 2760) / 390; e = easeOutCubic(p);
+        var mr = R * e;
+        var maskStr = 'radial-gradient(circle at ' + cx + 'px ' + cy + 'px, transparent ' + mr + 'px, #000 ' + (mr + 0.5) + 'px)';
+        splash.style.webkitMaskImage = maskStr;
+        splash.style.maskImage = maskStr;
+      } else {
+        // 结束：动画已完成，移除整层
+        finish();
+        return;
+      }
+      window.requestAnimationFrame(frame);
+    }
+
+    function finish() {
+      if (done) return;
+      done = true;
+      if (splash.parentNode) splash.parentNode.removeChild(splash);
+    }
+
+    // 兜底：异常时强制移除，避免启动层永久遮挡页面
+    setTimeout(finish, 3400);
+    window.requestAnimationFrame(frame);
+  }
+  initSplash();
 
   /* ---------- 打印：展开今译 / 打印后恢复折叠 ---------- */
   window.addEventListener('beforeprint', function () {
