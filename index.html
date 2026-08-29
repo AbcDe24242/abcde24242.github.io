@@ -45,6 +45,14 @@ body {
    暖白 → 单颗朱红水滴落下 → 撞击/扩张 → 朱红漫开 → 中心揭幕。
    仅首次加载播放一次，结束后由脚本移除整层；打印完全隐藏。
    ============================================================ */
+/* 启动动画期间锁定页面滚动：防止底层页面滚动改变「鸣」的目标坐标 */
+html {
+  scrollbar-gutter: stable;
+}
+html.splash-active,
+body.splash-active {
+  overflow: hidden;
+}
 .intro-splash {
   position: fixed;
   inset: 0;
@@ -90,18 +98,20 @@ body {
   top: 50%;
   transform: translate(-50%, -50%);
   display: flex;
-  gap: 0.55em;
+  gap: 0.68em;
   font-family: var(--serif);
-  font-size: 32px;
+  font-size: 34px;
   font-weight: 600;
+  line-height: 1;
   color: var(--bg);
   white-space: nowrap;
 }
 .intro-motto span {
+  display: block;
+  line-height: 1;
   opacity: 0;
-  transform: translateY(3px) scale(0.98);
-  filter: blur(1px);
-  will-change: opacity, transform, filter;
+  transform: translateY(1.2px);
+  will-change: opacity, transform;
 }
 @media (max-width: 560px) {
   .splash-drop { width: 15px; height: 21px; }
@@ -250,10 +260,22 @@ input:focus-visible {
   text-orientation: upright;
   font-family: var(--serif);
   font-size: clamp(115px, 24vw, 160px);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--ink);
   line-height: 1;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
+}
+/* 标题「鸣」「语」拆成两个独立 span：
+   · 字距不再用父级 letter-spacing，而由「语」的 inline-start 边距控制，
+     使 .cover-title-ming 的盒子只对应纯净的「鸣」，不混入两字间距；
+   · 两个 span 显式 inline-block，让「鸣」拥有稳定独立的 transform box，
+     供启动动画做单 DOM FLIP（竖排 vertical-rl 下 inline 轴为上下）。 */
+.cover-title-ming,
+.cover-title-yu {
+  display: inline-block;
+}
+.cover-title-yu {
+  margin-inline-start: 0.1em;
 }
 .cover-epi {
   position: absolute;
@@ -709,7 +731,8 @@ footer .f-brand { font-family: var(--serif); font-size: 15px; color: var(--ink-2
   .entry { grid-template-columns: 40px 1fr; gap: 2px 12px; }
   .entry-id { font-size: 12px; }
   .yuanwen { font-size: 16.5px; }
-  .cover-title { font-size: 96px; right: 6%; letter-spacing: 0.08em; }
+  .cover-title { font-size: 96px; right: 6%; }
+  .cover-title-yu { margin-inline-start: 0.08em; }
   .cover-en { font-size: 17px; }
   .cover-sub { font-size: 12px; }
   .cover-epi { font-size: 12px; }
@@ -818,7 +841,8 @@ footer .f-brand { font-family: var(--serif); font-size: 15px; color: var(--ink-2
   .cover-vol { font-size: 7.5pt; }
   .cover-en { font-size: 12pt; }
   .cover-sub { font-size: 8.5pt; }
-  .cover-title { font-size: 64pt; letter-spacing: 0.08em; }
+  .cover-title { font-size: 64pt; }
+  .cover-title-yu { margin-inline-start: 0.08em; }
   .cover-epi { font-size: 8pt; }
   .cover-meta { font-size: 7pt; }
   .cover-seal {
@@ -1393,12 +1417,27 @@ footer .f-brand { font-family: var(--serif); font-size: 15px; color: var(--ink-2
     var el = document.getElementById(id);
     if (el) el.textContent = text;
   }
+  // 封面标题「鸣语」拆成两个独立 span，使「鸣」拥有独立、可测量的盒子，
+  // 供启动动画精确归位；字符内容仍来自 DATA.meta.title，不硬编码。
+  function renderCoverTitle(m) {
+    var coverTitle = document.getElementById('cover-title');
+    if (!coverTitle || !m.title) return;
+    coverTitle.innerHTML = '';
+    var ming = document.createElement('span');
+    ming.className = 'cover-title-ming';
+    ming.textContent = m.title.charAt(0);
+    var yu = document.createElement('span');
+    yu.className = 'cover-title-yu';
+    yu.textContent = m.title.slice(1);
+    coverTitle.appendChild(ming);
+    coverTitle.appendChild(yu);
+  }
   function renderMeta() {
     var m = DATA.meta;
     if (!m) return;
     document.title = m.title + ' · ' + m.subtitle;
     setText('cover-vol', m.volume + ' · ' + m.volEn);
-    setText('cover-title', m.title);
+    renderCoverTitle(m);
     setText('cover-sub', m.subtitle);
     setText('cover-en', m.en);
     setText('cover-epi', m.epigraph);
@@ -1721,13 +1760,17 @@ footer .f-brand { font-family: var(--serif); font-size: 15px; color: var(--ink-2
      一次性启动动画 · 水滴进场（Splash Screen）
      ------------------------------------------------------------
      借鉴 Aniplex Logo 片头的视觉语言：极简、留白、逐字显现、
-     有节奏的停顿。核心意象三词——「落墨、题字、开卷」：
+     有节奏的停顿。核心意象五步——「落墨、漫朱、题字、留鸣、开卷」：
      落墨：单颗朱红水滴渐显落下（重力加速 + 纵向拉长），
-           撞击中心压扁（squash），朱红液体连续扩张铺满全屏；
+           撞击中心压扁（squash）；
+     漫朱：水滴融入纸面，朱墨以轻微有机轮廓连续扩张铺满全屏；
      题字：「鸣师出高徒」五字于朱幕中央依次显现，如题签逐字
-           落定，稍驻之后整体隐去；
-     开卷：中心暖白揭幕（mask 从中心透明向外扩张），露出下方
-           《鸣语》首页。
+           落定；
+     留鸣：「师出高徒」四字渐隐，只余一「鸣」，静默片刻；
+     归位：开卷的同时，这枚「鸣」向正式封面《鸣语》标题中
+           「鸣」字的位置移动、放大，由暖白转近黑，无缝落款成题；
+     开卷：中心暖白揭幕（有机墨斑轮廓从中心向外扩张挖开），
+           露出下方《鸣语》首页。
      · 仅首次加载播放一次，结束即移除整层，不再消耗性能
      · 无障碍：prefers-reduced-motion 时直接显示首页
      · 打印：见 @media print 完全隐藏
@@ -1742,9 +1785,23 @@ footer .f-brand { font-family: var(--serif); font-size: 15px; color: var(--ink-2
       return;
     }
 
+    // 确认真要播放动画后，锁定页面滚动：防止动画期间底层页面滚动
+    // 改变 .cover-title-ming 在视口中的位置，导致「鸣」的目标坐标漂移。
+    document.documentElement.classList.add('splash-active');
+    document.body.classList.add('splash-active');
+
     var drop = splash.querySelector('.splash-drop');
     var ink = splash.querySelector('.splash-ink');
     var mottoSpans = splash.querySelectorAll('.intro-motto span');
+
+    // 正式封面标题：唯一承担「鸣」归位动画的 DOM。
+    // 启动画面期间隐藏「鸣」「语」；「鸣」将在开卷时以真实元素亮相并归位，
+    // 「语」在鸣落定后淡入——全程只有一个「鸣」元素，无第二个副本、无接管。
+    var coverTitle = document.getElementById('cover-title');
+    var coverMing = coverTitle ? coverTitle.querySelector('.cover-title-ming') : null;
+    var coverYu = coverTitle ? coverTitle.querySelector('.cover-title-yu') : null;
+    if (coverMing) coverMing.style.opacity = '0';
+    if (coverYu) coverYu.style.opacity = '0';
 
     // 视口相关量：覆盖半径取中心到最远角的距离，任何屏幕比例都能铺满
     var w = window.innerWidth;
@@ -1759,8 +1816,17 @@ footer .f-brand { font-family: var(--serif); font-size: 15px; color: var(--ink-2
     // 避免机械等距，形成片头题签式的人为节奏。
     var MOTTO_OFFSETS = [1400, 1510, 1620, 1760, 1880];
     var MOTTO_IN = 220;                // 单字进场时长（180–260ms）
-    var MOTTO_OUT = 2460;              // 完整句子停留后，开始整体淡出
-    var MOTTO_OUT_DUR = 210;           // 整体淡出时长（180–250ms）
+    var MOTTO_OUT = 2460;              // 「师出高徒」四字开始淡出
+    var MOTTO_OUT_DUR = 210;           // 四字淡出时长（2670 完全消失）
+    var REVEAL_START = 2780;           // 开卷开始，也是题句「鸣」→ 正式 coverMing 的小字切换点
+    var REVEAL_DUR = 370;              // 开卷时长（2780→3150），独立于归位，先完成
+    var REVEAL_END = REVEAL_START + REVEAL_DUR;  // 3150：开卷完成，停止 clip-path 重绘
+    var MOVE_START = 2900;             // 「鸣」开始归位（纸面已展开一部分后）
+    var MOVE_DUR = 480;                // 归位移动时长（2900→3380）
+    var MOVE_END = MOVE_START + MOVE_DUR;      // 3380：移动完成，鸣完全停住
+    var YU_START = 3430;               // 鸣落定后短暂停顿（3380→3430），语开始淡入
+    var YU_DUR = 130;                  // 「语」淡入时长（3430→3560）
+    var YU_END = YU_START + YU_DUR;    // 3560：完整「鸣语」成立
 
     var T0 = performance.now();
     var done = false;
@@ -1769,46 +1835,176 @@ footer .f-brand { font-family: var(--serif); font-size: 15px; color: var(--ink-2
     function easeInQuad(t) { return t * t; }                       // 重力加速
     function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }    // 扩张 / 揭幕 / 单字
     function easeOutQuart(t) { return 1 - Math.pow(1 - t, 4); }    // 撞击压扁
+    // smoothstep：起点速度 0、终点速度 0，中间变化比 smootherstep 平缓——
+    // 「鸣」归位用这个：启动 → 平稳滑行 → 自然减速 → 落定。
+    function smoothStep(t) {
+      t = clamp01(t);
+      return t * t * (3 - 2 * t);
+    }
 
-    // 五字：逐字进场 → 完整停留 → 整体淡出
+    // 有机墨斑轮廓：以三个错位、不同频率的正弦谐波叠加，
+    // 让边界有极轻微、固定的起伏（最大约 6%），而非完美几何圆。
+    // wobble=0 时退化为标准圆；wobble=1 时起伏最大。
+    function blobPoints(r, cx, cy, wobble) {
+      var N = 48, pts = [], i, a, bump;
+      for (i = 0; i < N; i++) {
+        a = (i / N) * Math.PI * 2;
+        bump = 1 + wobble * (
+          0.03 * Math.sin(a * 3 + 0.7) +
+          0.02 * Math.sin(a * 5 + 2.1) +
+          0.01 * Math.sin(a * 7 + 4.0)
+        );
+        pts.push([cx + Math.cos(a) * r * bump, cy + Math.sin(a) * r * bump]);
+      }
+      return pts;
+    }
+    function blobClip(r, cx, cy, wobble) {
+      var pts = blobPoints(r, cx, cy, wobble);
+      return 'polygon(' + pts.map(function (p) { return p[0].toFixed(1) + 'px ' + p[1].toFixed(1) + 'px'; }).join(', ') + ')';
+    }
+    // 开卷挖孔：用 path() 的两个独立子路径——外框全屏矩形 + 有机墨斑内孔，
+    // 以 evenodd 规则挖去中心，露出下方页面；孔边界沿用同一有机轮廓。
+    function revealClip(r, cx, cy, w, h, wobble) {
+      var hole = blobPoints(r, cx, cy, wobble);
+      var pts = hole.map(function (p) { return p[0].toFixed(1) + ' ' + p[1].toFixed(1); });
+      var d = 'M0 0L' + w.toFixed(1) + ' 0L' + w.toFixed(1) + ' ' + h.toFixed(1) + 'L0 ' + h.toFixed(1) + 'Z';
+      d += 'M' + pts.join('L') + 'Z';
+      return "path(evenodd, '" + d + "')";
+    }
+
+    // 五字：逐字进场 → 完整停留 → 「师出高徒」四字淡出、「鸣」单独留下。
+    // 极简处理：主要依靠 opacity 与错时进场形成片头感，
+    // 仅保留极轻微的上移（1.2px），不用缩放、不用模糊。
     function applyMotto(t) {
       var i, span, start, p;
       for (i = 0; i < mottoSpans.length; i++) {
         span = mottoSpans[i];
         start = MOTTO_OFFSETS[i];
-        if (t < start) {
-          span.style.opacity = '0';
-          span.style.transform = 'translateY(3px) scale(0.98)';
-          span.style.filter = 'blur(1px)';
-        } else if (t < start + MOTTO_IN) {
-          p = easeOutCubic((t - start) / MOTTO_IN);
-          span.style.opacity = String(p);
-          span.style.transform = 'translateY(' + (3 * (1 - p)) + 'px) scale(' + (0.98 + 0.02 * p) + ')';
-          span.style.filter = 'blur(' + (1 - p) + 'px)';
-        } else if (t < MOTTO_OUT) {
-          span.style.opacity = '1';
-          span.style.transform = 'translateY(0px) scale(1)';
-          span.style.filter = 'none';
-        } else if (t < MOTTO_OUT + MOTTO_OUT_DUR) {
-          p = (t - MOTTO_OUT) / MOTTO_OUT_DUR;
-          span.style.opacity = String(1 - p);
-          span.style.transform = 'translateY(' + (-2 * p) + 'px)';
-          span.style.filter = 'none';
+        if (i === 0) {
+          // 「鸣」：落定后一直保持，直到开卷时由正式 coverMing 在题句位置接过视觉
+          if (t < start) {
+            span.style.opacity = '0';
+            span.style.transform = 'translateY(1.2px)';
+          } else if (t < start + MOTTO_IN) {
+            p = easeOutCubic((t - start) / MOTTO_IN);
+            span.style.opacity = String(p);
+            span.style.transform = 'translateY(' + (1.2 * (1 - p)) + 'px)';
+          } else {
+            span.style.opacity = '1';
+            span.style.transform = 'translateY(0px)';
+          }
         } else {
-          span.style.opacity = '0';
-          span.style.transform = 'translateY(-2px)';
-          span.style.filter = 'none';
+          // 「师出高徒」：落定后保持，至 MOTTO_OUT 开始整体淡出
+          if (t < start) {
+            span.style.opacity = '0';
+            span.style.transform = 'translateY(1.2px)';
+          } else if (t < start + MOTTO_IN) {
+            p = easeOutCubic((t - start) / MOTTO_IN);
+            span.style.opacity = String(p);
+            span.style.transform = 'translateY(' + (1.2 * (1 - p)) + 'px)';
+          } else if (t < MOTTO_OUT) {
+            span.style.opacity = '1';
+            span.style.transform = 'translateY(0px)';
+          } else if (t < MOTTO_OUT + MOTTO_OUT_DUR) {
+            p = (t - MOTTO_OUT) / MOTTO_OUT_DUR;
+            span.style.opacity = String(1 - p);
+            span.style.transform = 'translateY(' + (-2 * p) + 'px)';
+          } else {
+            span.style.opacity = '0';
+            span.style.transform = 'translateY(-2px)';
+          }
         }
       }
     }
 
-    function setMottoGone() {
-      var i;
-      for (i = 0; i < mottoSpans.length; i++) {
-        mottoSpans[i].style.opacity = '0';
-        mottoSpans[i].style.transform = 'translateY(-2px)';
-        mottoSpans[i].style.filter = 'none';
+    // —— 「鸣」归位（单 DOM FLIP）——
+    // 不再有第二个「鸣」副本：正式 .cover-title-ming 本身就是动画元素。
+    // 开卷时把它反向 FLIP 到题句「鸣」的位置（translate + scale），随后
+    // 只改 transform + color 归位到它的天然最终位置，MOVE_END 时 transform 归 none——
+    // 它从头到尾就是正式封面的「鸣」，因此终点没有任何替换、接管或重影。
+
+    // 暖白 #fbfaf7 → 近黑 #17161a（与 --bg / --ink 一致）
+    var COL_A = [251, 250, 247];
+    var COL_B = [23, 22, 26];
+    function colorAt(p) {
+      // 颜色在运动 0~35% 保持暖白，35~75% 逐渐转深，75~100% 达到近黑
+      var cp;
+      if (p <= 0.35) cp = 0;
+      else if (p >= 0.75) cp = 1;
+      else cp = (p - 0.35) / 0.4;
+      var r = Math.round(COL_A[0] + (COL_B[0] - COL_A[0]) * cp);
+      var g = Math.round(COL_A[1] + (COL_B[1] - COL_A[1]) * cp);
+      var b = Math.round(COL_A[2] + (COL_B[2] - COL_A[2]) * cp);
+      return 'rgb(' + r + ',' + g + ',' + b + ')';
+    }
+
+    var flipped = false;   // 是否已完成题句「鸣」→ 正式 coverMing 的唯一一次小字切换
+    var moveInfo = null;   // 反向 FLIP 位移与缩放 { dx, dy, startScale }
+
+    // 在 REVEAL_START 完成唯一一次「小字切换」：测量题句「鸣」与正式「鸣」的
+    // 真实矩形与字号，把正式 coverMing 反向 FLIP 到题句位置，再让题句「鸣」退场。
+    // 顺序严格：测 source → 测 target → 施加 inverse transform → 显示 → 隐藏题句鸣。
+    function doMingFlip() {
+      if (flipped) return;
+      flipped = true;
+      var sourceRect = mottoSpans[0].getBoundingClientRect();
+      var targetRect = coverMing.getBoundingClientRect();
+      var sourceSize = parseFloat(getComputedStyle(mottoSpans[0]).fontSize);
+      var targetSize = parseFloat(getComputedStyle(coverMing).fontSize);
+      if (!sourceRect || !targetRect || !isFinite(sourceSize) || sourceSize <= 0 ||
+          !isFinite(targetSize) || targetSize <= 0) {
+        // 兜底：测不到时让 coverMing 直接以最终形态出现，不做归位动画
+        coverMing.style.opacity = '1';
+        coverMing.style.transform = 'none';
+        mottoSpans[0].style.opacity = '0';
+        return;
       }
+      var sourceX = sourceRect.left + sourceRect.width / 2;
+      var sourceY = sourceRect.top + sourceRect.height / 2;
+      var targetX = targetRect.left + targetRect.width / 2;
+      var targetY = targetRect.top + targetRect.height / 2;
+      moveInfo = {
+        dx: sourceX - targetX,
+        dy: sourceY - targetY,
+        startScale: sourceSize / targetSize
+      };
+      coverMing.style.transformOrigin = 'center center';
+      coverMing.style.transform =
+        'translate(' + moveInfo.dx + 'px,' + moveInfo.dy + 'px) scale(' + moveInfo.startScale + ')';
+      coverMing.style.opacity = '1';
+      mottoSpans[0].style.opacity = '0';
+    }
+
+    // 归位动画：REVEAL_START ≤ t < MOVE_END，只改正式 coverMing 的 transform + color。
+    // REVEAL_START～MOVE_START 之间是「留鸣静默」：停在题句位置，暖白。
+    function applyMingMove(t) {
+      if (!moveInfo) {
+        // 兜底：无 FLIP 信息时，coverMing 已是最终形态，无需动画
+        coverMing.style.color = 'rgb(23,22,26)';
+        return;
+      }
+      if (t < MOVE_START) {
+        // 留鸣静默：停在题签位置（transform 已是 scale-down 初始态），暖白
+        coverMing.style.opacity = '1';
+        coverMing.style.color = 'rgb(251,250,247)';
+        return;
+      }
+      // 归位阶段：MOVE_START ≤ t < MOVE_END，只改 transform + color
+      var p = clamp01((t - MOVE_START) / MOVE_DUR);
+      var e = smoothStep(p);
+      var currentDx = moveInfo.dx * (1 - e);
+      var currentDy = moveInfo.dy * (1 - e);
+      var currentScale = moveInfo.startScale + (1 - moveInfo.startScale) * e;
+      coverMing.style.transform =
+        'translate(' + currentDx + 'px,' + currentDy + 'px) scale(' + currentScale + ')';
+      coverMing.style.color = colorAt(p);
+      coverMing.style.opacity = '1';
+    }
+
+    // 「语」淡入：只改 opacity，不飞入、不缩放、不模糊——在「鸣」落定之后才出现。
+    function applyYu(t) {
+      var p = clamp01((t - YU_START) / YU_DUR);
+      if (coverYu) coverYu.style.opacity = String(p);
     }
 
     function frame(now) {
@@ -1837,33 +2033,50 @@ footer .f-brand { font-family: var(--serif); font-size: 15px; color: var(--ink-2
         drop.style.opacity = '1';
         drop.style.transform = 'translate(-50%, 0px) scale(' + (0.82 + 0.88 * e) + ', ' + (1.25 - 0.80 * e) + ')';
       } else if (t < 1250) {
-        // 阶段五：水滴隐去，朱红液体从撞击点连续扩张
-        drop.style.opacity = '0';
+        // 阶段五：压扁后的水滴逐渐淡出，与最初的小墨斑重叠约 60ms，
+        // 使人感觉水滴融入纸面、化为朱墨；墨斑以轻微有机轮廓漫开，
+        // 最初约 180ms 带不规则起伏，随后收敛为标准圆大面积扩张。
+        drop.style.opacity = String(clamp01(1 - (t - 850) / 60));
         p = (t - 850) / 400; e = easeOutCubic(p);
         var r = 18 + (R - 18) * e;
-        ink.style.clipPath = 'circle(' + r + 'px at ' + cx + 'px ' + cy + 'px)';
+        var wob = (t < 1030) ? easeOutCubic(clamp01(1 - (t - 850) / 180)) : 0;
+        ink.style.clipPath = blobClip(r, cx, cy, wob);
       } else if (t < 1400) {
         // 阶段六：全屏朱红，短暂停顿（让液体运动停歇，蓄势待题字）
         ink.style.clipPath = 'none';
-      } else if (t < 2670) {
-        // 阶段七：题字——「鸣师出高徒」逐字显现 → 完整停留 → 整体淡出
+      } else if (t < REVEAL_START) {
+        // 阶段七：题字——「鸣师出高徒」逐字显现 → 完整停留
+        // → 「师出高徒」四字淡出 → 只留「鸣」（留鸣）
         ink.style.clipPath = 'none';
         applyMotto(t);
-      } else if (t < 2760) {
-        // 阶段八：纯朱红静止（文字已隐去，短暂留白）
-        ink.style.clipPath = 'none';
-        setMottoGone();
-      } else if (t < 3150) {
-        // 阶段九：开卷——中心暖白揭幕，mask 从中心透明向外扩张，露出首页
-        ink.style.clipPath = 'none';
-        setMottoGone();
-        p = (t - 2760) / 390; e = easeOutCubic(p);
-        var mr = R * e;
-        var maskStr = 'radial-gradient(circle at ' + cx + 'px ' + cy + 'px, transparent ' + mr + 'px, #000 ' + (mr + 0.5) + 'px)';
-        splash.style.webkitMaskImage = maskStr;
-        splash.style.maskImage = maskStr;
+      } else if (t < MOVE_END) {
+        // 阶段八/九：开卷（2780→3150）与归位（2900→3380）仅前半段部分重叠——
+        // 开卷先完成并停止 clip-path 重绘，让注意力自然转移到「鸣」的归位。
+        if (!flipped) doMingFlip();
+        applyMingMove(t);
+        if (t < REVEAL_END) {
+          ink.style.clipPath = 'none';
+          p = (t - REVEAL_START) / REVEAL_DUR; e = easeOutCubic(p);
+          var mr = R * e;
+          // 边缘不规则度随揭幕扩大而减弱：起势有轻微墨迹感，收束趋于平滑
+          var revealWob = 0.4 * (1 - e);
+          var revealStr = revealClip(mr, cx, cy, w, h, revealWob);
+          splash.style.clipPath = revealStr;
+          splash.style.webkitClipPath = revealStr;
+        }
+        // 注意：开卷完成后不在此移除 splash——splash 保持在完全揭开状态，
+        // 直到整段动画结束再统一清理，避免「鸣」仍在移动时删除整块全屏
+        // 合成层引起一次不必要的重新合成。
+      } else if (t < YU_END) {
+        // 阶段十：鸣已归位（transform 归 none、颜色近黑），「语」随后淡入——
+        // 终点什么都不发生：它本来就是正式封面「鸣」，不存在替换或接管。
+        if (!flipped) doMingFlip();
+        coverMing.style.transform = 'none';
+        coverMing.style.color = 'rgb(23,22,26)';
+        coverMing.style.opacity = '1';
+        applyYu(t);
       } else {
-        // 结束：动画已完成，移除整层
+        // 结束：动画已完成，统一移除 splash
         finish();
         return;
       }
@@ -1873,11 +2086,21 @@ footer .f-brand { font-family: var(--serif); font-size: 15px; color: var(--ink-2
     function finish() {
       if (done) return;
       done = true;
+      // 恢复滚动：无论正常结束还是 4000ms 兜底，都不能让页面永久锁死。
+      document.documentElement.classList.remove('splash-active');
+      document.body.classList.remove('splash-active');
       if (splash.parentNode) splash.parentNode.removeChild(splash);
+      // 确保正式「鸣」「语」回到最终形态（正常路径下已如此，兜底场景强制复位）
+      if (coverMing) {
+        coverMing.style.opacity = '1';
+        coverMing.style.transform = 'none';
+        coverMing.style.color = 'rgb(23,22,26)';
+      }
+      if (coverYu) coverYu.style.opacity = '1';
     }
 
     // 兜底：异常时强制移除，避免启动层永久遮挡页面
-    setTimeout(finish, 3400);
+    setTimeout(finish, 4000);
     window.requestAnimationFrame(frame);
   }
   initSplash();
